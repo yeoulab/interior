@@ -1,5 +1,6 @@
 package com.suri.customer.login.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.suri.customer.login.model.Customer;
 import com.suri.customer.login.repository.CustomerRepository;
 import com.suri.customer.login.service.CustomerLoginService;
+import com.suri.customer.util.CommonUtil;
 
 @RestController
-@RequestMapping("/customer")
 public class CustomerLoginController {
 	
 	static Logger logger = LoggerFactory.getLogger(CustomerLoginController.class);
@@ -33,45 +34,52 @@ public class CustomerLoginController {
 	
 	@GetMapping("/test")
 	public String customerTestUrl() {
+		/* 서버 테스트용 */
 		return "Server starts";
 	}
+	@RequestMapping("/get")
+	public String getMessage() {
+		/* 서버 and DB 테스트용 */
+		List<Customer> customerList = customerRepository.findAll();
+		
+		logger.info("getMessage");
+		return customerList.get(0).toString();
+	}	
 	
 	@PostMapping("/register")
-	public void registerCustomer(HttpServletRequest request) {
-		
+	public void registerCustomer(@RequestBody Customer cs) throws IOException {
+	    	
+		String pwd, newPwd, salt;
+	    salt = CommonUtil.generateSalt(); 
+	    pwd = cs.getPwd(); 
+	    newPwd = CommonUtil.getEncrypt(pwd, salt);
+	    
+	    Customer customer = Customer.builder().name(cs.getName())
+                .phone(cs.getPhone())
+                .pwd(newPwd)
+                .salt(salt)
+                .email(cs.getEmail())
+                .build();
+	    
+	    customerLoginService.createCustomer(customer);	   		
 	}	
 	
 	@PostMapping("/login")
-	//public Customer login(HttpServletRequest request, HttpServletResponse response) {
-	public Customer login(@RequestBody Customer customer) {
+	public Customer login(HttpServletRequest request, HttpServletResponse response, @RequestBody Customer customer) 
+	throws Exception{
+				
+		Customer customerResult = customerLoginService.login(customer.getEmail(), customer.getPwd());
 		
-		// Session 을 받아서 넘기는 부분은 Controller 가 아니라 filter 나 interceptor 에 놓아야 한다.
-//		logger.info("email : " + request.getAttribute("email"));
-		logger.info("email: " + customer.getEmail());
-		// httpSession 안에 세션정보가 있으면
-		// 고객정보를 확인한 후 return한다
-		//HttpSession httpSession = request.getSession();
-		//if( !httpSession.getId().isEmpty() ) {
-		//	customer = new Customer();
-		//	customer.setEmail((String)httpSession.getAttribute("email"));
-		//	customer.setPhone((String)httpSession.getAttribute("phone"));
-		//	return customer;
-		//}
-		
-		// httpSession 안에 정보가 없는 경우, body 에 있는 값을 받아 login 한다.
-		//String email = (String)request.getAttribute("email");
-		//String pwd = (String)request.getAttribute("pwd");
-		
-		List<Customer> listCustomer = customerLoginService.login(customer.getEmail(), customer.getPwd());
-		
-		if( listCustomer != null ) {
-			//HttpSession httpSession = request.getSession();
-			//httpSession.setAttribute("customer", listCustomer.get(0));
+		if( customerResult != null ) {
+			customerResult.setPwd("");
+			customerResult.setSalt("");
+			HttpSession httpSession = request.getSession();
+			httpSession.setAttribute("customer", customerResult);
 		}else {
-			// error 처리
+			throw new Exception("고객정보 없음");
 		}
 		
-		return listCustomer.get(0);
+		return customerResult;
 	}
 	
 	@PostMapping("/logout")
@@ -80,17 +88,4 @@ public class CustomerLoginController {
 		HttpSession httpSession = request.getSession();
 		httpSession.invalidate();
 	}
-
-	@RequestMapping("/get")
-	public String getMessage() {
-		Customer customer = new Customer("shinmaeng@naver.com", "1111","01024393039");
-		customerRepository.save(customer);
-		
-		List<Customer> customerList = customerRepository.findAll();
-		
-		logger.info("getMessage");
-		return customerList.get(0).toString();
-	}
-	
-
 }

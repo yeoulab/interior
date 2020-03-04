@@ -34,10 +34,19 @@ public class Customer {
 	@Column(nullable = false, unique = true)
 	private String phone;
 	
+	@Column(nullable = false, unique = true)
+	private String name;
+	
+    @Column
+    private String salt;	
+	
 	@Builder
-	public Customer(String email, String pwd, String phone) {
+	public Customer(String email, String pwd, String phone, String name, String salt) {
 		this.email = email;
 		this.pwd = pwd;
 		this.phone = phone;
+		this.name = name;
+		this.salt = salt;
 	}
 }
+

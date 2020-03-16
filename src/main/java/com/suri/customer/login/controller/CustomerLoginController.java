@@ -22,6 +22,7 @@ import com.suri.customer.login.service.CustomerLoginService;
 import com.suri.customer.util.CommonUtil;
 
 @RestController
+@RequestMapping(value="/customer")
 public class CustomerLoginController {
 	
 	static Logger logger = LoggerFactory.getLogger(CustomerLoginController.class);
@@ -89,3 +90,4 @@ public class CustomerLoginController {
 		httpSession.invalidate();
 	}
 }
+
